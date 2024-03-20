@@ -1,0 +1,12 @@
+﻿@using Test_Thuyet_Trinh_Oauth2.Manages 
+<ul class="navbar-nav navbar-right">
+    @if (!Helpers.IsAuthenticated())
+    {
+        <li>@Html.ActionLink("Register", "Register", "Account", routeValues: null, htmlAttributes: new { id = "registerLink", @class = "nav-link" })</li>
+        <li>@Html.ActionLink("Log in", "Login", "Account", routeValues: null, htmlAttributes: new { id = "loginLink", @class = "nav-link" })</li>
+    }
+    else
+    {
+        <li class="d-flex"><p class="fs-6 text-light mb-0" style="margin-top: 8px;">@Helpers.GetUserFromToken().username </p> @Html.ActionLink("Log Off", "LogOff", "Account", routeValues: null, htmlAttributes: new { id = "registerLink", @class = "nav-link" })</li>
+    }
+</ul>

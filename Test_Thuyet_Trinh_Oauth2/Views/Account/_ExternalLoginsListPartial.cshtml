@@ -1,0 +1,37 @@
+﻿@model Test_Thuyet_Trinh_Oauth2.Models.ExternalLoginListViewModel
+@using Microsoft.Owin.Security
+@using Octokit
+
+<h4>Use another service to log in.</h4>
+<hr />
+@{
+    var loginProviders = Context.GetOwinContext().Authentication.GetExternalAuthenticationTypes();
+    if (loginProviders.Count() == 0)
+    {
+        <div>
+            <p>
+                There are no external authentication services configured. See <a href="https://go.microsoft.com/fwlink/?LinkId=403804">this article</a>
+                for details on setting up this ASP.NET application to support logging in via external services.
+            </p>
+        </div>
+    }
+    else
+    {
+        using (Html.BeginForm("ExternalLogin", "Account", new { ReturnUrl = Model.ReturnUrl }, FormMethod.Post, new { role = "form" }))
+        {
+            @Html.AntiForgeryToken()
+            <div id="socialLoginList">
+
+                <a href="@Test_Thuyet_Trinh_Oauth2.Manages.Helpers.UrlGithubLogin()" class="d-flex justify-content-center text-decoration-none btn btn-sm btn-light fs-6 w-25 d-flex justify-content-center mt-1 mb-1">
+                    <i class="fab fa-github align-self-center text-white" style="margin-right: 0 "></i>
+                </a>
+                <p>
+                    @foreach (AuthenticationDescription p in loginProviders)
+                    {
+                        <button type="submit" class="btn btn-outline-dark" id="@p.AuthenticationType" name="provider" value="@p.AuthenticationType" title="Log in using your @p.Caption account">@p.AuthenticationType</button>
+                    }
+                </p>
+            </div>
+        }
+    }
+}

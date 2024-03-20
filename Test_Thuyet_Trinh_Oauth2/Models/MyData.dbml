@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?><Database Name="test_oauth2" Class="MyDataDataContext" xmlns="http://schemas.microsoft.com/linqtosql/dbml/2007">
+  <Table Name="dbo.Users" Member="Users">
+    <Type Name="User">
+      <Column Name="id" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="username" Type="System.String" DbType="NVarChar(100)" CanBeNull="true" />
+      <Column Name="email" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="password" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="fullname" Type="System.String" DbType="NVarChar(150)" CanBeNull="true" />
+      <Column Name="provide" Type="System.String" DbType="NVarChar(50)" CanBeNull="true" />
+      <Column Name="provide_id" Type="System.String" DbType="VarChar(MAX)" CanBeNull="true" />
+      <Column Name="Token" Type="System.String" DbType="VarChar(MAX)" CanBeNull="true" />
+    </Type>
+  </Table>
+</Database>
