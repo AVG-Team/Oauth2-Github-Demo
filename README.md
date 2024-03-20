@@ -37,7 +37,36 @@ Thêm các key vào phần appSetting trong file web.config:
 ```
 ### Bước 5: Tạo folder Manager và class Helper
 Tạo thư mục Manager và tạo class Helper trong đó để tái sử dụng các hàm.
+```CSharp
+public partial class Helpers
+{
+    public static void addCookie(string key, string value, int second = 10)
+    {
+        HttpCookie cookie = new HttpCookie(key, value);
+        cookie.Expires = DateTime.Now.AddSeconds(second);
+        HttpContext.Current.Response.Cookies.Add(cookie);
+    }
 
+    public static bool IsAuthenticated()
+    {
+        UserManager userManager = new UserManager();
+        return userManager.IsAuthenticated() && userManager.IsUser();
+    }
+
+    public static string GetValueFromAppSetting(string key)
+    {
+        return global::System.Configuration.ConfigurationManager.AppSettings[key];
+    }
+
+    public static string UrlGithubLogin()
+    {
+        string clientIdGh = GetValueFromAppSetting("ClientIdGH");
+        string redirectUrl = GetValueFromAppSetting("RedirectUrl");
+        return
+            "https://github.com//login/oauth/authorize?client_id=" + clientIdGh + "&redirect_uri=" + redirectUrl + "&scope=user:email";
+    }
+}
+```
 ### Bước 6: Code trong Class Helper
 ```CSharp
 public static string GetValueFromAppSetting(string key)
@@ -89,17 +118,143 @@ Thêm một button hoặc thẻ <a> để đăng nhập vào Github, sử dụng
 
 ### Bước 9: Xác nhận thông tin từ Github
 Sau khi đồng ý xác nhận với Github, người dùng sẽ được yêu cầu nhập email để xác nhận.
+```CsHtml
+@model Website_Course_AVG.Models.ExternalLoginConfirmationViewModel
+@{
+    ViewBag.Title = "Register";
+    bool isReadonlyAttribute = ((ViewBag.LoginProvider != "Twitter") && (ViewBag.LoginProvider != "Github"));
+}
+@section styles{
+    
+}
+<main aria-labelledby="title">
+    <h2 class="text-black-75" id="title">@ViewBag.Title.</h2>
+    <h3 class="text-black-75">Associate your @ViewBag.LoginProvider account.</h3>
 
+    @using (Html.BeginForm("ExternalLoginConfirmation", "Account", new { ReturnUrl = ViewBag.ReturnUrl }, FormMethod.Post, new { role = "form" }))
+    {
+        @Html.AntiForgeryToken()
+
+        <h4 class="text-black-75">Association Form</h4>
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+        <p class="text-danger-50">
+            You've successfully authenticated with <strong>@ViewBag.LoginProvider</strong>.
+            Please enter a user name for this site below and click the Register button to finish
+            logging in.
+        </p>
+        <div class="row">
+            @Html.LabelFor(m => m.Email, new { @class = "col-md-2 col-form-label" })
+            <div class="col-md-10">
+                <input type="hidden" value="@ViewBag.LoginProvider" name="loginProvider" />
+                <input type="hidden" value="@ViewBag.login" name="username" />
+                <input type="hidden" value="@ViewBag.provideKey" name="provideKey" />
+                <input type="text" name="Email" value="@ViewBag.Email" class="form-control mt-2" @(isReadonlyAttribute ? "readonly" : "") />
+            </div>
+        </div>
+        <div class="row">
+            <div class="offset-md-2 col-md-10 d-flex justify-content-center mt-2">
+                <input type="submit" class="btn btn-outline-dark" value="Register" />
+            </div>
+        </div>
+    }
+</main>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}
+
+```
 ### Bước 10: Kiểm tra và tạo tài khoản mới
 Kiểm tra email đã tồn tại trong hệ thống chưa. Nếu chưa, tạo tài khoản mới từ email và thông tin cần thiết.
+```CSharp
+  public bool CheckUsername(string username)
+  {
+      bool flag = false;
+      account account = _data.accounts.Where(x => x.username == username).FirstOrDefault();
+      if (account != null)
+          flag = true;
+      user user = _data.users.Where(x => x.email == username).FirstOrDefault();
+      if (user != null)
+          flag = true;
 
+      return flag;
+  }
+```
+Tạo User từ email thông tin fullname , username , email
+```CSharp
+ public async Task<IdentityResult> CreateAccountUserAsync(string fullname, account account, string email)
+{
+    if (account.username == null)
+        return IdentityResult.Failed();
+
+    try
+    {
+        if (account.password == null)
+            account.password = "12345678";
+        string password = BCrypt.Net.BCrypt.HashPassword(account.password);
+        account.password = password;
+        _data.accounts.InsertOnSubmit(account);
+        _data.SubmitChanges();
+
+        account accountTmp = _data.accounts.Where(x => x.username == account.username).First();
+
+        user user = new user();
+        user.fullname = fullname;
+        user.email = email;
+        user.account_id = accountTmp.id;
+        _data.users.InsertOnSubmit(user);
+        _data.SubmitChanges();
+        return IdentityResult.Success;
+    }
+    catch (Exception ex)
+    {
+        return IdentityResult.Failed();
+    }
+}
+```
+Và hàm Login
+```CSharp
+ public void login(string email)
+{
+    var token = TokenHelper.GenerateToken(email);
+    HttpCookie cookie = new HttpCookie("AuthToken", token);
+    cookie.Expires = DateTime.Now.AddDays(30);
+    HttpContext.Current.Response.Cookies.Add(cookie);
+}
+```
 Lưu ý : hàm login mỗi người sẽ có một cách riêng , nhưng thông thường phổ biến là lưu vào cookie , và session, chúng ta lưu email và role user
 Ở đây lưu vào cookie bằng mã token đã mã hóa
 Chúng tôi đã sử dụng JWT (JSON Web Token) ( tiêu chuẩn mở được sử dụng để tạo ra các token có thể xác thực được dùng trong việc xác thực và ủy quyền ) và mã hóa token bằng HMACSHA512 (HMAC - Hash-based Message Authentication Code) để ký và xác thực token. 
+```CSharp
+public static string GenerateToken(string username, string role = "User")
+{
+    List<Claim> claims = new List<Claim> {
+        new Claim(ClaimTypes.Name, username),
+        new Claim(ClaimTypes.Role, role),
+    };
 
+    byte[] keyBytes = Encoding.UTF8.GetBytes(Secret);
+
+    int minKeySizeBytes = 64;
+    while (keyBytes.Length < minKeySizeBytes)
+    {
+        keyBytes = keyBytes.Concat(Encoding.UTF8.GetBytes(Secret)).ToArray();
+    }
+
+    var key = new SymmetricSecurityKey(keyBytes);
+
+    var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
+
+    var token = new JwtSecurityToken(
+            claims: claims,
+            expires: DateTime.Now.AddDays(30),
+            signingCredentials: creds
+        );
+
+    var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+
+    return jwt;
+}
+```
 ### Bước 11: Xác thực và đăng nhập
-Sử dụng JWT để tạo và mã hóa token, sau đó lưu vào cookie để đăng nhập.
-
-Nếu đăng nhập bằng github thì setting lại biến info username và info email vì thư viện Owin không hỗ trợ github nên chúng ta cần custom lại; Và kiểm tra nếu biến info không tồn tại thì sẽ báo lỗi
-
-Kiểm tra email or username đã tồn tại hay chưa, nếu rồi thì báo lỗi. Còn chưa thì tạo tài khoản mới và sau đó sẽ đăng nhập và về lại trang chủ ( dùng các hàm ở Bước 10 )
+Sau khi người dùng nhập email đăng kí và ấn xác nhận chúng ta sẽ kiểm tra email đã tồn tại chưa , nếu rồi thì đăng nhập còn chưa sẽ đăng kí tài khoản mới
