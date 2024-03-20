@@ -39,7 +39,7 @@ Thêm các key vào phần appSetting trong file web.config:
 Tạo thư mục Manager và tạo class Helper trong đó để tái sử dụng các hàm.
 
 ### Bước 6: Code trong Class Helper
-```
+```CSharp
 public static string GetValueFromAppSetting(string key)
 {
     return global::System.Configuration.ConfigurationManager.AppSettings[key];
@@ -54,7 +54,7 @@ public static string UrlGithubLogin()
 ```
 ### Bước 7: Thêm hàm GithubLogin() vào Account Controller
 Thêm hàm GithubLogin() vào Account Controller để xử lý đăng nhập thông qua Github.
-```
+```CSharp
 public async Task<ActionResult> GithubLogin(string code)
  {
      var client = new HttpClient();
